@@ -3,8 +3,8 @@ import time
 from hardware import *
 from carMath import SpeedManager
 import random
-from ai import maneuverai
-
+from ai.maneuverai import *
+from net.Network import NetworkCommandListner
 
 pinAssignBoard = {'FrontSensor':Pins['P0'][0]}
 
@@ -20,8 +20,16 @@ class autoCar(object):
         self.leftSens = UsonicSens([Pins['P4'][0]],[Pins['P5'][0]])
         self.rightSens = UsonicSens([Pins['P6'][0]],[Pins['P7'][0]])        
         self.mainEngine = PowerEngine3([],[Pins['CE1'][0]])
-        self.wheel = SteeringEngine([],[Pins['CE0'][0]])
+        #self.wheel = SteeringEngine([],[Pins['CE0'][0]])
         self.running = True
+        
+        self.netCmd = NetworkCommandListner({
+            'fsens':self.forwardSensl
+            'bsens':self.backSens,
+            'rsens':self.leftSens,
+            'lsens':self.rightSens,
+            'mainEngine':self.mainEngine})
+        
         
         #self.clicker1 = Clicker([Pins['P0'][0]],[])
         #self.clicker2 = Clicker([Pins['P1'][0]],[])
@@ -41,7 +49,7 @@ class autoCar(object):
         self.distMinTurn = 50
         
         #global speed limit
-        self.speedLimit = 20
+        self.speedLimit = 10
         sd = {'0-50':10,'50-100':20,'100-150':30,'150-200':40,'200-*':50} 
     
     def Run(self):
@@ -57,30 +65,71 @@ class autoCar(object):
         self.leftSens.autoSense()
         self.rightSens.autoSense()
         self.backSens.autoSense()
-        self.mainEngine.set_rotate(0)
-        self.wheel.rotate(0)
+        #self.mainEngine.rotate('applyBrakes',0.1)
+        
+        #self.wheel.turn('off')
         
                
         #self.speedTable = SpeedTable(sd)
         
         # ManeuverProxy setup
         self.maneuver = ManeuverProxy({'fSens':self.forwardSens, 'bSens':self.backSens, 'lSens':self.leftSens, 'rSens':self.rightSens, 'distMinTurnB':self.distMinTurn, 'distMinTurnF':self.distMinTurn,'distMinTurnR':self.distMinTurn,'distMinTurnL':self.distMinTurn, 'speedLimit':self.speedLimit})
-        self.maneuver.setCommand("turnToAvoid")
+        #self.maneuver.setCommand("turnToAvoid")
         
         
-        time.sleep(1)
-        print "Done Initiating - Let's Drive."
+       # print 'motor set'
+        #self.mainEngine.pwm(self.mainEngine.convertToVolt(-30))
+        #self.mainEngine.pwm(self.mainEngine.convertToVolt(10))
+       # time.sleep(10)
         
+        
+        while True:
+        
+            time.sleep(1)
+            print "Done Initiating - Let's Drive."
+            self.whereToGo = 'forward'
+            self.incsomething = 0
+            print ("forward drive 30")
+            self.mainEngine.rotate('accelerateF',70)
+            
+            
+            time.sleep(10)
+            print ("forward drive 30")
+            self.mainEngine.rotate('accelerateF',70)
+            
+            time.sleep(10)
 
+            print ("Backwards drive 20")        
+            self.mainEngine.rotate('accelerateB',70)
+            
+            time.sleep(2)
+            print ("Backwards drive 30")        
+            self.mainEngine.rotate('accelerateB',90)
+            self.scannerTest()
+            time.sleep(5)
+
+            print("hi")
+            self.mainEngine.rotate('applyBrakes',5)
+            
+            time.sleep(2)
+        
+        
+        
         while self.running == True:
+            
+            self.scannerTest()
 
-            #self.scannerTest()
-            self.sillyMission()
+            time.sleep(1)
+        
+        
+        
+            #self.sillyMission2()
 
 
     def scannerTest(self):
-    
+        
         #self.mainEngine.pwmStop()
+        clear()
         print "forward     "+str(self.forwardSens.getReading())
         print "back     "+str(self.backSens.getReading())
         print "left        "+str(self.leftSens.getReading())
@@ -90,8 +139,36 @@ class autoCar(object):
         #print "two     "+str(self.clicker2.lastReading)
         
         
-        time.sleep(1)
-        clear()
+        
+
+
+
+
+    def sillyMission2(self):
+        #self.incsomething += 0.1
+        #self.wheel.turn(self.incsomething)
+        
+        #clear()
+        
+        print (self.mainEngine.commandsList)
+        if(self.whereToGo == 'forward'):
+            if((self.forwardSens.getReading() >= self.distMinF) or (self.forwardSens.getReading() == 'inf')):
+                
+                self.mainEngine.rotate('accelerateF', 30)
+            else:
+                self.mainEngine.rotate('applyBrakes', 2)
+                self.whereToGo = 'backwards'
+
+            
+        if(self.whereToGo == 'backwards' ):
+            if((self.backSens.getReading() >= self.distMinF) or (self.backSens.getReading() == 'inf')):
+                
+                self.mainEngine.rotate('accelerateB', 30)
+            else:
+                
+                self.mainEngine.rotate('applyBrakes', 2)
+                self.whereToGo = 'forward'
+
 
             
     def sillyMission(self):
@@ -110,7 +187,7 @@ class autoCar(object):
         if ((self.forwardSens.getReading() > self.distMinF) and (self.maneuver.currentCommand == None)):
             self.wheel.rotate(0)
               
-            self.mainEngine.set_rotate(self.speedLimit)
+            self.mainEngine.rotate('accelerateF',self.speedLimit)
             print "must move on"
     
         #set the command when you see a wall
@@ -124,9 +201,9 @@ class autoCar(object):
         elif ((self.maneuver.currentCommand != None) and (req['altCommandRequest'] == None)):
         
             #set the steering
-            self.wheel.rotate(req['turnRequest'])
+            self.wheel.turn(req['turnRequest'])
             #set the motor
-            self.mainEngine.accelerateF(req['speedRequest'])
+            self.mainEngine.rotate('accelerateF',req['speedRequest'])
             
         #if the brain has another request, consider that instead
         elif ((req['altCommandRequest'] != None)):

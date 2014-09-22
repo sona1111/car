@@ -4,7 +4,7 @@ from hardware import *
 from carMath import SpeedManager
 import random
 from ai.maneuverai import *
-
+from net.Network import NetworkCommandListner
 
 pinAssignBoard = {'FrontSensor':Pins['P0'][0]}
 
@@ -22,6 +22,15 @@ class autoCar(object):
         self.mainEngine = PowerEngine3([],[Pins['CE1'][0]])
         #self.wheel = SteeringEngine([],[Pins['CE0'][0]])
         self.running = True
+        self.CPUTime = 0.05
+        
+        self.netCmd = NetworkCommandListner({
+            'fsens':self.forwardSensl
+            'bsens':self.backSens,
+            'rsens':self.leftSens,
+            'lsens':self.rightSens,
+            'mainEngine':self.mainEngine})
+        
         
         #self.clicker1 = Clicker([Pins['P0'][0]],[])
         #self.clicker2 = Clicker([Pins['P1'][0]],[])
@@ -65,7 +74,17 @@ class autoCar(object):
         #self.speedTable = SpeedTable(sd)
         
         # ManeuverProxy setup
-        self.maneuver = ManeuverProxy({'fSens':self.forwardSens, 'bSens':self.backSens, 'lSens':self.leftSens, 'rSens':self.rightSens, 'distMinTurnB':self.distMinTurn, 'distMinTurnF':self.distMinTurn,'distMinTurnR':self.distMinTurn,'distMinTurnL':self.distMinTurn, 'speedLimit':self.speedLimit})
+        self.maneuver = ManeuverProxy({
+            'fSens':self.forwardSens,
+            'bSens':self.backSens,
+            'lSens':self.leftSens,
+            'rSens':self.rightSens,
+            'distMinTurnB':self.distMinTurn,
+            'distMinTurnF':self.distMinTurn,
+            'distMinTurnR':self.distMinTurn,
+            'distMinTurnL':self.distMinTurn,
+            'speedLimit':self.speedLimit})
+            
         #self.maneuver.setCommand("turnToAvoid")
         
         
@@ -75,43 +94,49 @@ class autoCar(object):
        # time.sleep(10)
         
         
-        while True:
-        
-            time.sleep(1)
-            print "Done Initiating - Let's Drive."
-            self.whereToGo = 'forward'
-            self.incsomething = 0
-            print ("forward drive 30")
-            self.mainEngine.rotate('accelerateF',70)
-            
-            
-            time.sleep(10)
-            print ("forward drive 30")
-            self.mainEngine.rotate('accelerateF',70)
-            
-            time.sleep(10)
-
-            print ("Backwards drive 20")        
-            self.mainEngine.rotate('accelerateB',70)
-            
-            time.sleep(2)
-            print ("Backwards drive 30")        
-            self.mainEngine.rotate('accelerateB',90)
-            self.scannerTest()
-            time.sleep(5)
-
-            print("hi")
-            self.mainEngine.rotate('applyBrakes',5)
-            
-            time.sleep(2)
-        
-        
-        
         while self.running == True:
-            
-            self.scannerTest()
+        
+            if self.netCmd.hasRequest() == True:
+                
+                time.sleep(self.CPUTime)
+                
+            else:
+                
+                time.sleep(1)
+                print "Done Initiating - Let's Drive."
+                self.whereToGo = 'forward'
+                self.incsomething = 0
+                print ("forward drive 30")
+                self.mainEngine.rotate('accelerateF',70)
+                
+                
+                time.sleep(10)
+                print ("forward drive 30")
+                self.mainEngine.rotate('accelerateF',70)
+                
+                time.sleep(10)
 
-            time.sleep(1)
+                print ("Backwards drive 20")        
+                self.mainEngine.rotate('accelerateB',70)
+                
+                time.sleep(2)
+                print ("Backwards drive 30")        
+                self.mainEngine.rotate('accelerateB',90)
+                self.scannerTest()
+                time.sleep(5)
+
+                print("hi")
+                self.mainEngine.rotate('applyBrakes',5)
+                
+                time.sleep(2)
+        
+        
+        
+        #while self.running == True:
+            
+            #self.scannerTest()
+
+            #time.sleep(1)
         
         
         

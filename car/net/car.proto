@@ -1,0 +1,13 @@
+package car;
+
+message Command {
+    required string name = 1;
+    optional float value = 2;
+}
+
+message Info {
+    optional float lsens = 1;
+    optional float rsens = 2;
+    optional float fsens = 3;
+    optional float bsens = 4;
+}
