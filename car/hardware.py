@@ -56,6 +56,11 @@ class Hardware(object):
             self.p = GPIO.PWM(self.pinsOut[0], self.frequency)
         if (Type == "sensor"):
             pass
+        if (Type == "engine"):
+            self.frequency = 100
+            self.pwm1 = GPIO.PWM(self.pinsOut[0], self.frequency)
+            self.pwm2 = GPIO.PWM(self.pinsOut[1], self.frequency)
+            self.pwm3 = GPIO.PWM(self.pinsOut[2], self.frequency)
 
     #set the values of the pins on the PI
     def initPins(self):
@@ -87,7 +92,59 @@ class Hardware(object):
     def pwmStop(self):
         self.p.ChangeDutyCycle(0)
 
+'''--------------------------------------------------------------------------------------------------------------------------'''        
+'''-----------------------------------------------------Power Engine Class-------------------------'''
+'''--------------------------------------------------------------------------------------------------------------------------'''
+            
+class PowerEngine3(Hardware):
+    
+    def __init__(self,pinsIn,pinsOut):
+        super(PowerEngine3, self).__init__("engine",pinsIn, pinsOut)
+        #self.pinsIn = pinsIn
+        #self.pinsOut = pinsOut
+        self.pwm1.start(100)
+        self.pwm2.start(100)
+        self.pwm3.start(100)
+        
+    	self.coast()
+    	
+    def move(self, percent):
+        
+        if percent == 0.0:
+            self.pwm1.ChangeDutyCycle(convert(100))
+            self.pwm2.ChangeDutyCycle(0)
+            self.pwm3.ChangeDutyCycle(0)
+            
+        elif percent < 0:
+        
+            self.pwm1.ChangeDutyCycle(convert(abs(percent)))
+            self.pwm2.ChangeDutyCycle(0)
+            self.pwm3.ChangeDutyCycle(convert(100))
+            
+        else:
+        
+            self.pwm1.ChangeDutyCycle(convert(abs(percent)))
+            self.pwm2.ChangeDutyCycle(convert(100))
+            self.pwm3.ChangeDutyCycle(0)
+            
+    def coast(self):
+    
+        self.pwm1.ChangeDutyCycle(0)
 
+    		
+    def convert(self, value)
+        return (self.convertToVolt(value))*100.0/RaspberryPiVout
+          
+    def convertToVolt(self, value):
+        
+        if (value >= -100.0 and value < 0.0):                  
+            return (((PowerEngine['backwards'] - PowerEngine['stop'])/100)*(-value))+PowerEngine['stop']
+        
+        elif (value <= 100.0 and value > 0.0):
+            return PowerEngine['stop']-(((PowerEngine['stop'] - PowerEngine['forward'])/100)*value)
+            
+        else:
+            return PowerEngine['stop']
 '''--------------------------------------------------------------------------------------------------------------------------'''        
 '''-----------------------------------------------------Ultra Sonic Sensors--------------------------------------------------'''
 '''--------------------------------------------------------------------------------------------------------------------------'''
@@ -271,72 +328,7 @@ class SteeringEngine(Hardware):
             self.lastCommands.append([angle,0])
             self.lastCommands.pop(0)
         
-'''--------------------------------------------------------------------------------------------------------------------------'''        
-'''-----------------------------------------------------Power Engine Class-------------------------'''
-'''--------------------------------------------------------------------------------------------------------------------------'''
-            
-class PowerEngine3(Hardware):
-    
-    def __init__(self,pinsIn,pinsOut):
-        super(PowerEngine3, self).__init__("pwm",pinsIn, pinsOut)
-        self.pinsIn = pinsIn
-        self.pinsOut = pinsOut
-        self.p.start(100)
-    	self.pwm(self.convertToVolt(0.0))
-    	self.speedPercent = 0.0
-    	self.flag = True
-    	self.th = Thread(target=self.rotate)
-    	self.th.setDaemon(True)
-    	self.th.start()
 
-
-    def rotate(self, speed):
-    	
-    	self.pwm(self.convertToVolt(float(speed)))
-    	
-    	#while self.flag == True:
-		
-            
-            
-#            print self.speedPercent
-#            if self.speedPercent == 0:			
-#                self.pwm(self.convertToVolt(float(self.speedPercent)))
-#                self.pwmStop()
-#                time.sleep(0.1)
-
-#            else:				
-#                self.pwm(self.convertToVolt(float(0)))
-#                time.sleep(0.07)
-#                self.pwm(self.convertToVolt(float(self.speedPercent)))
-#                time.sleep(0.5)
-
-				
-    def set_rotate(self, command):
-
-#        self.flag = False
-#        self.th.join()
-        self.speedPercent = command
-        
-#        self.th = Thread(target=self.rotate)
-#        self.th.setDaemon(True)      
-#        self.th.start()        
-        
-        
-
-
-    		
-            
-          
-    def convertToVolt(self, value):
-        
-        if (value >= -100.0 and value < 0.0):                  
-            return (((PowerEngine['backwards'] - PowerEngine['stop'])/100)*(-value))+PowerEngine['stop']
-        
-        elif (value <= 100.0 and value > 0.0):
-            return PowerEngine['stop']-(((PowerEngine['stop'] - PowerEngine['forward'])/100)*value)
-            
-        else:
-            return PowerEngine['stop']
         
 class Clicker(Hardware):
 

@@ -19,7 +19,7 @@ class autoCar(object):
         self.backSens = UsonicSens([Pins['P0'][0]],[Pins['P1'][0]])
         self.leftSens = UsonicSens([Pins['P4'][0]],[Pins['P5'][0]])
         self.rightSens = UsonicSens([Pins['P6'][0]],[Pins['P7'][0]])        
-        self.mainEngine = PowerEngine3([],[Pins['CE1'][0]])
+        self.mainEngine = PowerEngine3([],[Pins['P0'][0],Pins['P1'][0],Pins['P2'][0]])
         #self.wheel = SteeringEngine([],[Pins['CE0'][0]])
         self.running = True
         self.CPUTime = 0.05
