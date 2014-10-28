@@ -59,8 +59,8 @@ class Hardware(object):
         if (Type == "engine"):
             self.frequency = 100
             self.pwm1 = GPIO.PWM(self.pinsOut[0], self.frequency)
-            self.pwm2 = GPIO.PWM(self.pinsOut[1], self.frequency)
-            self.pwm3 = GPIO.PWM(self.pinsOut[2], self.frequency)
+            self.pwm2 = GPIO.output(self.pinsOut[1], False) #GPIO.PWM(self.pinsOut[1], self.frequency)
+            self.pwm3 = GPIO.output(self.pinsOut[2], False) #GPIO.PWM(self.pinsOut[2], self.frequency)
 
     #set the values of the pins on the PI
     def initPins(self):
@@ -103,35 +103,41 @@ class PowerEngine3(Hardware):
         #self.pinsIn = pinsIn
         #self.pinsOut = pinsOut
         self.pwm1.start(100)
-        self.pwm2.start(100)
-        self.pwm3.start(100)
+        #self.pwm2.start(100)
+        #self.pwm3.start(100)
         
-    	self.coast(0.0)
+    	self.coast()
     	
     def move(self, percent):
         
         if percent == 0.0:
             self.pwm1.ChangeDutyCycle(convert(100))
-            self.pwm2.ChangeDutyCycle(0)
-            self.pwm3.ChangeDutyCycle(0)
+            self.pwm2.output(False) # GPIO.output(self.pinsOut[1], False) / self.pwm2.ChangeDutyCycle(0)
+            self.pwm3.output(False) # GPIO.output(self.pinsOut[2], False) / self.pwm3.ChangeDutyCycle(0)
             
         elif percent < 0:
         
             self.pwm1.ChangeDutyCycle(convert(abs(percent)))
-            self.pwm2.ChangeDutyCycle(0)
-            self.pwm3.ChangeDutyCycle(convert(100))
+            self.pwm2.output(False) # GPIO.output(self.pinsOut[1], False) / self.pwm2.ChangeDutyCycle(0)
+            self.pwm3.output(True) # GPIO.output(self.pinsOut[2], True) / self.pwm3.ChangeDutyCycle(100)
             
         else:
         
             self.pwm1.ChangeDutyCycle(convert(abs(percent)))
-            self.pwm2.ChangeDutyCycle(convert(100))
-            self.pwm3.ChangeDutyCycle(0)
+            self.pwm2.output(True) # GPIO.output(self.pinsOut[1], True) / self.pwm2.ChangeDutyCycle(100)
+            self.pwm3.output(False) # GPIO.output(self.pinsOut[2], False) / self.pwm3.ChangeDutyCycle(0)
             
     def coast(self):
     
         self.pwm1.ChangeDutyCycle(0)
+        
+    def stop(self):
+    
+        self.pwm1.ChangeDutyCycle(convert(100))
+        self.pwm2.output(False) # GPIO.output(self.pinsOut[1], False) / self.pwm2.ChangeDutyCycle(0)
+        self.pwm3.output(False) # GPIO.output(self.pinsOut[2], False) / self.pwm3.ChangeDutyCycle(0)
 
-    		
+		
     def convert(self, value)
         return (self.convertToVolt(value))*100.0/RaspberryPiVout
           

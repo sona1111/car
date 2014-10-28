@@ -43,57 +43,57 @@ class AngleManager(object):
 
 class SpeedManager(object):
 
-	def __init__(self, n = 5):
-		
-		self.distArr = [[0,0],[0,0]]
-		self.rawSpeed = 0
-		self.speedArr = [0] * n		
-		self.aveSpeed = 0
+    def __init__(self, n = 5):
+    
+        self.distArr = [[0,0],[0,0]]
+        self.rawSpeed = 0
+        self.speedArr = [0] * n        
+        self.aveSpeed = 0
+    
+    
+    def updateBySensor(self, newDist, newTime):
+    
+        self.distArr[0][0] = self.distArr[0][1]
+        self.distArr[1][0] = self.distArr[1][1]
+        
+        self.distArr[0][1] = newDist
+        self.distArr[1][1] = newTime
+        
+        self.rawSpeed = (-1)*(self.getSlope(self.distArr[1][1], self.distArr[0][1], self.distArr[1][0], self.distArr[0][0]))
+        
+        #self.speedArr.pop(0)
+        #self.speedArr.append(self.rawSpeed)
+        #self.aveSpeed = self.lowRounder(self.average(self.speedArr),10)
+        self.aveSpeed = self.lowRounder(self.rawSpeed,8)
+    
+    def average(self, arr):
+    
+    
+        tot = 0
+        n = len(arr)
+        if n == 0:
+            return False
+        else:
+            for speed in arr:
+                tot += speed
+            return (tot/n)
+    
+    def getSlope(self, x1, y1, x2, y2):        
+    
+        try:
+            out = ((y2-y1)/(x2-x1))
+            return out
+        except:
+            return False
+    
+    def lowRounder(self, num, ranger):
+        return (int(num/ranger))*ranger
+    
+    
+    def printSpeed(self):
+    
+        print "speed = " + str(round(self.aveSpeed,2))
 
-
-	def updateBySensor(self, newDist, newTime):
-		
-		self.distArr[0][0] = self.distArr[0][1]
-		self.distArr[1][0] = self.distArr[1][1]
-		
-		self.distArr[0][1] = newDist
-		self.distArr[1][1] = newTime
-		
-		self.rawSpeed = (-1)*(self.getSlope(self.distArr[1][1], self.distArr[0][1], self.distArr[1][0], self.distArr[0][0]))
-		
-		#self.speedArr.pop(0)
-		#self.speedArr.append(self.rawSpeed)
-		#self.aveSpeed = self.lowRounder(self.average(self.speedArr),10)
-		self.aveSpeed = self.lowRounder(self.rawSpeed,8)
-		
-	def average(self, arr):
-		
-		
-		tot = 0
-		n = len(arr)
-		if n == 0:
-			return False
-		else:
-			for speed in arr:
-				tot += speed
-			return (tot/n)
-	
-	def getSlope(self, x1, y1, x2, y2):		
-		
-		try:
-			out = ((y2-y1)/(x2-x1))
-			return out
-		except:
-			return False
-	
-	def lowRounder(self, num, ranger):
-		return (int(num/ranger))*ranger
-		
-			
-	def printSpeed(self):
-		
-		print "speed = " + str(round(self.aveSpeed,2))
-		
 class DistSmoother(object):
 
     def __init__(self, outliarThreshold, confirmThreshold, n = 3):

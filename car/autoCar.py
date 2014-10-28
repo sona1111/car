@@ -5,6 +5,7 @@ from carMath import SpeedManager
 import random
 from ai.maneuverai import *
 from net.Network import NetworkCommandListner
+from mission import MissionCommandListner
 
 pinAssignBoard = {'FrontSensor':Pins['P0'][0]}
 
@@ -25,7 +26,14 @@ class autoCar(object):
         self.CPUTime = 0.05
         
         self.netCmd = NetworkCommandListner({
-            'fsens':self.forwardSensl
+            'fsens':self.forwardSensl,
+            'bsens':self.backSens,
+            'rsens':self.leftSens,
+            'lsens':self.rightSens,
+            'mainEngine':self.mainEngine})
+            
+        self.missionCmd = MissionCommandListner({
+            'fsens':self.forwardSensl,
             'bsens':self.backSens,
             'rsens':self.leftSens,
             'lsens':self.rightSens,
@@ -57,7 +65,7 @@ class autoCar(object):
         
         print 'Loading Car AI...'
         
-        time.sleep(1)
+        time.sleep(0.5) #lol
         self.initiateVariables()
         
         print 'Initiating Car Sensors...'
@@ -66,12 +74,7 @@ class autoCar(object):
         self.leftSens.autoSense()
         self.rightSens.autoSense()
         self.backSens.autoSense()
-        #self.mainEngine.rotate('applyBrakes',0.1)
-        
-        #self.wheel.turn('off')
-        
-               
-        #self.speedTable = SpeedTable(sd)
+
         
         # ManeuverProxy setup
         self.maneuver = ManeuverProxy({
@@ -84,89 +87,48 @@ class autoCar(object):
             'distMinTurnR':self.distMinTurn,
             'distMinTurnL':self.distMinTurn,
             'speedLimit':self.speedLimit})
-            
-        #self.maneuver.setCommand("turnToAvoid")
-        
-        
-       # print 'motor set'
-        #self.mainEngine.pwm(self.mainEngine.convertToVolt(-30))
-        #self.mainEngine.pwm(self.mainEngine.convertToVolt(10))
-       # time.sleep(10)
-        
+
+        self.missionCmd.start()
         
         while self.running == True:
         
             if self.netCmd.hasRequest() == True:
                 
-                time.sleep(self.CPUTime)
+                self.missionCmd.hold()
+                
+            elif self.missionCmd.hasRequest() == True:
+            
+                self.missionCmd.unHold()
                 
             else:
                 
-                time.sleep(1)
-                print "Done Initiating - Let's Drive."
-                self.whereToGo = 'forward'
-                self.incsomething = 0
-                print ("forward drive 30")
-                self.mainEngine.rotate('accelerateF',70)
-                
-                
-                time.sleep(10)
-                print ("forward drive 30")
-                self.mainEngine.rotate('accelerateF',70)
-                
-                time.sleep(10)
-
-                print ("Backwards drive 20")        
-                self.mainEngine.rotate('accelerateB',70)
-                
-                time.sleep(2)
-                print ("Backwards drive 30")        
-                self.mainEngine.rotate('accelerateB',90)
-                self.scannerTest()
+                print "no mission and no network command - nothing to do"
+                self.mainEngine.stop()
                 time.sleep(5)
-
-                print("hi")
-                self.mainEngine.rotate('applyBrakes',5)
                 
-                time.sleep(2)
+            time.sleep(self.CPUTime)
+                
         
         
         
         #while self.running == True:
             
             #self.scannerTest()
-
             #time.sleep(1)
-        
-        
-        
             #self.sillyMission2()
 
 
     def scannerTest(self):
         
-        #self.mainEngine.pwmStop()
         clear()
         print "forward     "+str(self.forwardSens.getReading())
         print "back     "+str(self.backSens.getReading())
         print "left        "+str(self.leftSens.getReading())
         print "right       "+str(self.rightSens.getReading())
         
-        #print "one     "+str(self.clicker1.lastReading)
-        #print "two     "+str(self.clicker2.lastReading)
-        
-        
-        
-
-
-
 
     def sillyMission2(self):
-        #self.incsomething += 0.1
-        #self.wheel.turn(self.incsomething)
-        
-        #clear()
-        
+
         print (self.mainEngine.commandsList)
         if(self.whereToGo == 'forward'):
             if((self.forwardSens.getReading() >= self.distMinF) or (self.forwardSens.getReading() == 'inf')):
@@ -235,7 +197,7 @@ class autoCar(object):
     def oldMission(self):
             
             
-        
+        side='left'
         self.mainEngine.set_rotate(0)
         time.sleep(2)
         print "can't move any more"
@@ -345,51 +307,7 @@ class autoCar(object):
                 print "ohh mama"            
                 return False                             
             
-         
-        #self.forwardSens.speed.printSpeed()
-        #time.sleep(4)
-        
-        #self.wheel.pwm(SteeringEngine_c['center'])
 
-        #self.mainEngine.pwm(3.3)
-
-        #while (int(self.forwardSens.getReading()) > 90) or (int(self.forwardSens.getReading()) == -1):
-        #	time.sleep(0.05)
-
-            '''
-        self.mainEngine.set_rotate(0)
-        print "gonna start in 4"
-        time.sleep(1)
-        print "gonna start in 3"
-        time.sleep(1)
-        print "gonna start in 2"
-        time.sleep(1)
-        print "gonna start in 1"
-        time.sleep(1)
-            '''
-        
-        
-        #self.wheel.rt()
-        
-        
-        
-        
-        #print "FWD   ",
-        
-        #self.forwardSens.getReading()
-        
-        #print "RIGHT   ",
-        
-        
-        
-        
-        #print "LEFT   ",
-        
-        #self.leftSens.getReading()
-
-# back 32.5
-# stop 24.85
-# fwd 18.8
 
 
         

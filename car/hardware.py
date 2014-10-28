@@ -59,8 +59,8 @@ class Hardware(object):
         if (Type == "engine"):
             self.frequency = 100
             self.pwm1 = GPIO.PWM(self.pinsOut[0], self.frequency)
-            self.pwm2 = GPIO.PWM(self.pinsOut[1], self.frequency)
-            self.pwm3 = GPIO.PWM(self.pinsOut[2], self.frequency)
+            self.pwm2 = GPIO.output(self.pinsOut[1], False) #GPIO.PWM(self.pinsOut[1], self.frequency)
+            self.pwm3 = GPIO.output(self.pinsOut[2], False) #GPIO.PWM(self.pinsOut[2], self.frequency)
 
     #set the values of the pins on the PI
     def initPins(self):
@@ -103,35 +103,44 @@ class PowerEngine3(Hardware):
         #self.pinsIn = pinsIn
         #self.pinsOut = pinsOut
         self.pwm1.start(100)
-        self.pwm2.start(100)
-        self.pwm3.start(100)
-        
+        #self.pwm2.start(100)
+        #self.pwm3.start(100)
+        self.speedLimit = 100.0
     	self.coast()
+    	
+    def setGlobalSpeedLimit(self, limit):
+        self.speedLimit = float(limit)
     	
     def move(self, percent):
         
         if percent == 0.0:
-            self.pwm1.ChangeDutyCycle(convert(100))
-            self.pwm2.ChangeDutyCycle(0)
-            self.pwm3.ChangeDutyCycle(0)
+            self.pwm1.ChangeDutyCycle(convert(100.0))
+            self.pwm2.output(False) # GPIO.output(self.pinsOut[1], False) / self.pwm2.ChangeDutyCycle(0)
+            self.pwm3.output(False) # GPIO.output(self.pinsOut[2], False) / self.pwm3.ChangeDutyCycle(0)
             
         elif percent < 0:
         
-            self.pwm1.ChangeDutyCycle(convert(abs(percent)))
-            self.pwm2.ChangeDutyCycle(0)
-            self.pwm3.ChangeDutyCycle(convert(100))
+            self.pwm1.ChangeDutyCycle(convert(max(abs(percent),self.speedLimit)))
+            self.pwm2.output(False) # GPIO.output(self.pinsOut[1], False) / self.pwm2.ChangeDutyCycle(0)
+            self.pwm3.output(True) # GPIO.output(self.pinsOut[2], True) / self.pwm3.ChangeDutyCycle(100)
             
         else:
         
-            self.pwm1.ChangeDutyCycle(convert(abs(percent)))
-            self.pwm2.ChangeDutyCycle(convert(100))
-            self.pwm3.ChangeDutyCycle(0)
+            self.pwm1.ChangeDutyCycle(convert(max(abs(percent),self.speedLimit)))
+            self.pwm2.output(True) # GPIO.output(self.pinsOut[1], True) / self.pwm2.ChangeDutyCycle(100)
+            self.pwm3.output(False) # GPIO.output(self.pinsOut[2], False) / self.pwm3.ChangeDutyCycle(0)
             
     def coast(self):
     
         self.pwm1.ChangeDutyCycle(0)
+        
+    def stop(self):
+    
+        self.pwm1.ChangeDutyCycle(convert(100))
+        self.pwm2.output(False) # GPIO.output(self.pinsOut[1], False) / self.pwm2.ChangeDutyCycle(0)
+        self.pwm3.output(False) # GPIO.output(self.pinsOut[2], False) / self.pwm3.ChangeDutyCycle(0)
 
-    		
+		
     def convert(self, value)
         return (self.convertToVolt(value))*100.0/RaspberryPiVout
           
@@ -251,23 +260,8 @@ class SteeringEngine(Hardware):
         self.p.start(100)                  #setting the GPIO
         self.pwm(self.convertToVolt(0.0))  #pulsing 0 volts out
         
-        # engine thread initiation #
-        self.timer = [0]*2                 # [0]-initial time, [1]-final time 
-        self.commandsList = [[0,1],['off',1]]      # VoltagePercent, TimeFrame
-        self.lastCommands = [[None,None]]*3
-        self.override = False              # False-override is not needed, True-override is needed 
-        self.startECE = True
-        self.ECE_th = Thread(target=self.ECE)
-        self.ECE_th.setDaemon(True)
-        self.ECE_th.start()
-        
-    
-    #command takes a list, the first value is speed percent and the second is direction or brake
-    def override(self, command):
-        
-        self.commandsList = [command]    
-        self.override = True
-        
+        self.currentAngle = 0    
+            
     def ECE(self): #engineCommandExecuter
         
         #while engineCommandExecuter is True check for engine commands
@@ -317,16 +311,17 @@ class SteeringEngine(Hardware):
             value = float(value)
             return SteeringEngine_c['center']
 
-
+    #angle can be values from -100 to 100
     def turn(self,angle):
-        print (angle)
-        if ((self.lastCommands[-1][0] == angle) and (self.lastCommands[-2][0] == angle) and (self.lastCommands[-3][0] == angle)):
-            #print("Repetitiveness, I'm receiving the same angle too many times. I will not add it to the commandsList. \n \t \t angle value of: ", angle)
-            pass
+        if angle == 0:
+            self.pwn(self.convertToVolt('off'))
+            self.currentAngle = 0
         else:
-            self.commandsList.append([angle,0])
-            self.lastCommands.append([angle,0])
-            self.lastCommands.pop(0)
+            self.pwm(self.convertToVolt(angle)
+            self.currentAngle = angle
+            
+    def getAngle(self):
+        return self.currentAngle
         
 
         

@@ -1,0 +1,90 @@
+from piranaFiles import PiranaFiles
+from sshAuthenticator import SSHAuthenticator
+from sshfsManager import SSHFSManager
+from userGenerator import UserGenerator
+import os
+from threading import Thread
+
+import logging, logging.config
+logging.config.fileConfig("sonicPlatformLog.ini")
+logr = logging.getLogger('PiranaInterface')
+
+
+class PiranaInterface(object):
+    
+    def __init__(self, keyFilePath=None):
+        
+        #self.users = [name for name in os.listdir('/home') if os.path.isdir(os.path.join('/home', name)) and os.path.isdir(os.path.join('/home', name, '.pirana'))]
+        self.users = [name for name in os.listdir('/home') if os.path.isdir(os.path.join('/home', name))]
+        self.users = [x for x in self.users if x not in ['ubuntu','nmdata','nmusers','sonic']]
+        logr.debug("The users detected are: %s" % str(self.users))
+        
+        if keyFilePath == None:
+            self.autoKeyFilePath = True
+        else:
+            self.autoKeyFilePath = False
+        self.keyFilePath = keyFilePath
+    
+    #add settings to pirana and authenticate all users for one headnode
+    #this output belongs to all users equally (777 permissions) and will be available at the indicated mount location
+    #the 'remove' option will COMPLETELY DELETE THE OUTPUT PATH, and remove the settings from pirana
+    def setupGlobal(self, host, name='sonicGeneratedCluster'):
+        
+        if self.autoKeyFilePath == True:
+            self.keyFilePath = '../aws/clusterModifier/keys/%s.pem' % (name)
+        logr.info("setting up SSHFS mounting at /home/sonic/%s" % (name))
+        sshfs = SSHFSManager(keyFilePath=self.keyFilePath)
+        sshfs.createMounting(name, host)
+        logr.info("generating all local users on the remote cluster")
+        userGen = UserGenerator(self.keyFilePath, host)
+        userGen.addAll(users = self.users)
+        
+        numTh = len(self.users)
+        logr.info("Now beginning %d threads to set up users' pirana config and remote auth" % (numTh))
+        numThDone = 0
+        threads = []
+        for user in self.users:           
+            th = Thread(target=self.setupUser, args=(host,user,name))            
+            th.start()
+            threads.append(th)
+        for thread in threads:            
+            thread.join()
+            numThDone += 1
+            logr.info("(%d/%d threads done)" % (numThDone,numTh))
+        
+    
+    #add settings to pirana and authenticate for a single specified user
+    #folder will only belong to the user and will be available at the indicated mount location
+    #the 'remove' option will COMPLETELY DELETE THE OUTPUT PATH, and remove the settings from pirana
+    def setupUser(self, host, user, name):
+        pf = PiranaFiles()         
+        pf.setName(name)
+        pf.setLocalFolder('/home/sonic/%s/%s' % (name,user))
+        pf.setRemoteFolder('/home/%s' % (user))
+        pf.setLogin('%s@%s' % (user,host))
+        pf.setUsername(user)
+        pf.writeOut()
+        sh = SSHAuthenticator(self.keyFilePath)
+        sh.authenticateUser(user, host)
+        
+    
+    #add settings to pirana and authenticate for one specified study group of users
+    #path specification is still needed because it is not always '/home/study'
+    #the 'remove' option will COMPLETELY DELETE THE OUTPUT PATH, and remove the settings from pirana
+    def setupStudy(self, host, path, group, remove=False):
+        logr.critical("sorry, not yet implemented")
+        
+    def removeGlobal(self):
+        logr.critical("sorry, not yet implemented")
+    
+    def removeUser(self, host, user, name):
+        logr.critical("sorry, not yet implemented")
+        
+if __name__ == '__main__':
+    #test = PiranaInterface(keyFilePath='/home/ubuntu/testTemp02.pem')
+    #test.setupGlobal('54.172.68.50', 'piranaInitialTest')
+    logr.warning("Hi there!")
+    logr.info("Hello")
+    logr.critical("lolwut")
+    logr.debug("testing")
+    logr.error("Some error")
