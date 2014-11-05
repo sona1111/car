@@ -30,21 +30,18 @@ class AreaMap(object):
         #set the position of the car to the center of the array
         self.carPos = self.arrWidth/2
         self.mapArr[self.carPos][self.carPos] = 2
-        self.frameBuffer = [self.mapArr]
+        self.frameBuffer = queue(self.mapArr, self.angleManager)
         
-        #self.th = Thread(target=self.makeFrame_th)
-        #self.th.setDaemon(True)
-        #self.th.start()
+        self.th = Thread(target=self.makeFrame_th)
+        self.th.setDaemon(True)
+        self.th.start()
         
     #generate the next frame and add it to the frameBuffer. Angle is calculated with the angle manager class
     def makeFrame_th(self):    
-        
+                
         while True:
-        #if len(self.frameBuffer) == 5:
-        #    self.frameBuffer.pop()
-        #newmap = self.ajustPosition(self.frameBuffer[-1])
-        #self.frameBuffer.append(newmap)
-            self.mapArr = self.ajustPosition(self.mapArr)
+            print "writing..."
+            self.frameBuffer.put(self.mapArr)         
             time.sleep(2)
         
     
@@ -80,40 +77,37 @@ class AreaMap(object):
               
         return oldMap
     
-    def ajustPosition(self, oldMap):
-        deltaAngle = math.pi/16
-        newMap = scipy.ndimage.interpolation.rotate(input=oldMap, angle=math.degrees(deltaAngle), reshape=False, order=0)
-        return newMap
     
-    def calcAngle(self, x, y):        
-        
-        if x == 0 and y < 0:            
-            out = math.pi + math.pi/2
-        elif x == 0 and y > 0:            
-            out = math.pi/2
-        elif y == 0 and x < 0:            
-            out = math.pi
-        elif y == 0 and x > 0:            
-            out = 0                         
-        elif x > 0 and y > 0:            
-            out = abs(math.atan(y/x))
-        elif x < 0 and y < 0:            
-            out = math.pi + abs(math.atan(y/x))
-        elif x < 0 and y > 0:           
-            out = math.pi/2 + abs(math.atan(y/x))        
-        elif x > 0 and y < 0:               
-            out = math.pi + math.pi/2 + abs(math.atan(y/x))
-        
-        
-        else:            
-            out = 0
-        return out
+    
+#     def calcAngle(self, x, y):        
+#         
+#         if x == 0 and y < 0:            
+#             out = math.pi + math.pi/2
+#         elif x == 0 and y > 0:            
+#             out = math.pi/2
+#         elif y == 0 and x < 0:            
+#             out = math.pi
+#         elif y == 0 and x > 0:            
+#             out = 0                         
+#         elif x > 0 and y > 0:            
+#             out = abs(math.atan(y/x))
+#         elif x < 0 and y < 0:            
+#             out = math.pi + abs(math.atan(y/x))
+#         elif x < 0 and y > 0:           
+#             out = math.pi/2 + abs(math.atan(y/x))        
+#         elif x > 0 and y < 0:               
+#             out = math.pi + math.pi/2 + abs(math.atan(y/x))
+#         
+#         
+#         else:            
+#             out = 0
+#         return out
     
     #return a map of the immediate area only
     #value of r is currently in array unit scale, not CM
     def prox(self, r):
         print self.mapArr
-        self.mapArr = self.ajustPosition(self.mapArr)
+        #self.mapArr = self.sition(self.mapArr)
         
         #the MAX builtin is required to make sure no negative array indicies are requested
         #print self.mapArr[(max(0,self.carPos-r)):(self.carPos+r),(max(0,self.carPos-r)):(self.carPos+r)]
@@ -233,6 +227,43 @@ def prettyDirections(directions):
 #     def printAngle(self):
 #     
 #         print self.angle
+class queue(object):
+
+    def __init__(self, first, angleManager, length=5):
+    
+        self.nodes = [None for x in xrange(length-1)]
+        self.nodes.append(first)
+        self.angleManager = angleManager
+      
+    
+    def getLast(self):
+        return self.nodes[-2]
+        
+    def take(self):
+        if self.length() > 0:
+            return self.nodes.pop()
+        else:
+            return None
+    
+    def put(self, node):
+        #move all of the nodes back one
+        for n in xrange(len(self.nodes)-1, 0, -1):
+            print n
+            self.nodes[n-1] = self.ajustAndCombine(self.nodes[n])
+        self.nodes[-1] = node        
+        
+    def length(self):
+        return len(self.nodes)
+    
+    def ajustAndCombine(self, oldMap):
+        #deltaAngle = self.angleManager.getDeltaAngle()
+        deltaAngle = math.pi/16
+        newMap = scipy.ndimage.interpolation.rotate(input=oldMap, angle=math.degrees(deltaAngle), reshape=False, order=0)
+        for yn, y in enumerate(oldMap):
+            for xn, x in enumerate(y):
+                if x == 1:
+                    newMap[yn][xn] = 1        
+        return newMap
 
 
 if __name__ == "__main__":
@@ -259,10 +290,9 @@ if __name__ == "__main__":
     tinst.prox(100)
     #pathfinder = ai.PathCalc()
     #result = pathfinder.calculateBestPath(tinst.x, tinst.y, tinst.mapArr)
-    for i in xrange(75):
-        
-        
-        
-        time.sleep(0.4)
-        tinst.prox(100)
+    print 'waiting...'
+    time.sleep(10)
+    for thing in tinst.frameBuffer.nodes:
+        print '..................'
+        print thing
         
